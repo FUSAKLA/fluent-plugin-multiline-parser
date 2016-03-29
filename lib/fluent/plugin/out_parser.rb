@@ -1,8 +1,9 @@
 require 'fluent/parser'
+require 'thread_safe'
 
 class Fluent::ParserOutput < Fluent::Output
 
-  @@lines_buffer = {}
+  @@lines_buffer = ThreadSafe::Hash.new
   Fluent::Plugin.register_output('parser', self)
 
   config_param :tag, :string, :default => nil
@@ -62,12 +63,13 @@ class Fluent::ParserOutput < Fluent::Output
     self
   end
   def parse_singleline(tag, time, record, line)
+    line.chomp!
     @parser.parse(line) do |t,values|
       if values
         t ||= time
         r = handle_parsed(tag, record, t, values)
       else
-        log.warn "pattern not match with data '#{line}'" unless @suppress_parse_error_log
+        log.warn "pattern not match with data #{tag} '#{line}'" unless @suppress_parse_error_log
         if @reserve_data
           t = time
           r = handle_parsed(tag, record, time, {})
