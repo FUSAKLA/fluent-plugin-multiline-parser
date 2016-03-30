@@ -80,7 +80,13 @@ class Fluent::ParserOutput < Fluent::Output
 
   def parse_multilines(tag, time, record, line)
     if @@lines_buffer.has_key?(tag)
-      if @parser.firstline?(line)
+      matches = @parser.firstline?(line)
+      if matches
+        index = line.index(matches[0])
+        if index && index > 0
+            @@lines_buffer[tag] << line[0..index]
+            line = line[index..-1]
+        end
         parse_singleline(tag, time, record, @@lines_buffer[tag])
         @@lines_buffer[tag] = line
       else
