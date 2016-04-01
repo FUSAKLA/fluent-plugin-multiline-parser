@@ -30,7 +30,7 @@ class Fluent::ParserFilter < Fluent::Filter
                          method(:parse_singleline)
                        end
 
-    @parser = Fluent::Plugin.new_parser(conf['format'])
+    @parser = Fluent::TextParser.new
     @parser.estimate_current_event = false
     @parser.configure(conf)
     if !@time_parse && @parser.parser.respond_to?("time_key=".to_sym)
@@ -44,7 +44,11 @@ class Fluent::ParserFilter < Fluent::Filter
     line.chomp!
     @parser.parse(line) do |t,values|
       if values
-        t ||= time
+        if @time_parse
+          t ||= time
+        else
+          t = time
+        end
         r = handle_parsed(tag, record, t, values)
         new_es.add(t, r)
       else
@@ -61,7 +65,7 @@ class Fluent::ParserFilter < Fluent::Filter
 
   def parse_multilines(tag, time, record, line, new_es, es)
     if @@lines_buffer.has_key?(tag)
-      matches = @parser.firstline?(line)
+      matches = @parser.parser.firstline?(line)
       if matches
         index = line.index(matches[0])
         if index && index > 0

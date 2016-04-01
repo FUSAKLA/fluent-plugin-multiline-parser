@@ -52,7 +52,7 @@ class Fluent::ParserOutput < Fluent::Output
                          method(:parse_singleline)
                        end
 
-    @parser = Fluent::Plugin.new_parser(conf['format'])
+    @parser = Fluent::TextParser.new
     @parser.estimate_current_event = false
     @parser.configure(conf)
     if !@time_parse && @parser.parser.respond_to?("time_key=".to_sym)
@@ -66,7 +66,11 @@ class Fluent::ParserOutput < Fluent::Output
     line.chomp!
     @parser.parse(line) do |t,values|
       if values
-        t ||= time
+        if @time_parse
+          t ||= time
+        else
+          t = time
+        end
         r = handle_parsed(tag, record, t, values)
       else
         log.warn "pattern not match with data #{tag} '#{line}'" unless @suppress_parse_error_log
@@ -80,7 +84,7 @@ class Fluent::ParserOutput < Fluent::Output
 
   def parse_multilines(tag, time, record, line)
     if @@lines_buffer.has_key?(tag)
-      matches = @parser.firstline?(line)
+      matches = @parser.parser.firstline?(line)
       if matches
         index = line.index(matches[0])
         if index && index > 0
