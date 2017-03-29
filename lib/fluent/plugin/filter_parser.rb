@@ -69,16 +69,17 @@ class Fluent::ParserFilter < Fluent::Filter
       if matches
         index = line.index(matches[0])
         if index && index > 0
-            @@lines_buffer[tag] << line[0..index]
+            @@lines_buffer[tag][0] << line[0..index]
             line = line[index..-1]
         end
-        parse_singleline(tag, time, record, @@lines_buffer[tag], new_es, es)
-        @@lines_buffer[tag] = line
+        record_buffered = @@lines_buffer[tag][1]
+        parse_singleline(tag, time, record_buffered, @@lines_buffer[tag][0], new_es, es)
+        @@lines_buffer[tag] = [line, record]
       else
-        @@lines_buffer[tag] << line
+        @@lines_buffer[tag][0] << line
       end
     else
-      @@lines_buffer[tag] = line
+      @@lines_buffer[tag] = [line, record]
     end
   end
 
